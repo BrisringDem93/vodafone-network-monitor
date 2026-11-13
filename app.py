@@ -4,6 +4,7 @@ import datetime as dt
 import io
 import json
 import os
+import re
 import secrets
 import threading
 import webbrowser
@@ -65,9 +66,20 @@ def export_zip(start, end):
         writer.writerow(safe)
     sanitized = []
     for event in events:
+        original = json.loads(event["event_json"])
         clean = {"imported_at": event["imported_at"], "source": "manual_json"}
         # Arbitrary Station text may include secrets, even without recognizable labels.
-        clean["event"] = {key: "[REDACTED]" for key in ("date", "time", "category", "logdetails", "error")}
+        record = {key: "[REDACTED]" for key in ("date", "time", "category", "logdetails", "error")}
+        for key, pattern in (("date", r"\d{4}-\d{2}-\d{2}|\d{2}/\d{2}/\d{4}"),
+                             ("time", r"\d{2}:\d{2}:\d{2}")):
+            value = original.get(key)
+            if isinstance(value, str) and re.fullmatch(pattern, value, flags=re.ASCII):
+                record[key] = value
+        if original.get("category") in ("WAN", "LCP", "DNS", "DHCP", "WiFi", "WIFI", "System"):
+            record["category"] = original["category"]
+        if type(original.get("error")) is int and original["error"] in (0, 1):
+            record["error"] = original["error"]
+        clean["event"] = record
         sanitized.append(clean)
     safe_anomalies = [{"kind": item["kind"], "started_at": item["started_at"],
                        "ended_at": item["ended_at"], "metrics": json.loads(item["details"])}
@@ -79,8 +91,9 @@ def export_zip(start, end):
         archive.writestr("technical.json", json.dumps({"band_channel": "See measurements.csv",
                                                        "adapter_driver": "Not collected to avoid identifying information"}, indent=2))
         archive.writestr("README.txt", "UTC timestamps. Measurements are probes, not throughput.\n"
-                         "Station events are indexed by import time; all original values are redacted "
-                         "because free text can contain secrets. Originals remain in the local database.\n"
+                         "Station events are indexed by import time; only strictly validated dates, "
+                         "times, categories and error flags are retained. Text and other values are redacted. "
+                         "Originals remain in the local database.\n"
                          "Review the archive before sharing. Missing values mean unavailable.\n")
     return output.getvalue()
 

@@ -27,13 +27,18 @@ class DashboardTests(unittest.TestCase):
 
     def test_export_removes_unrecognized_secrets(self):
         self.store.import_events({"logdetails": "****** 8.8.8.8", "date": "2026-01-01",
-                                  "unknown-secret-key": "private-token-784513", "error": 1})
+                                  "category": "WAN", "unknown-secret-key": "private-token-784513", "error": 1})
         self.store.add_measurement({"timestamp": app.now(), "source": "test", "ssid": "private-ssid",
                                     "bssid": "aa:bb:cc:dd:ee:ff", "gateway_ms": 3,
                                     "internet1_ms": 10, "internet2_ms": 11})
         content = app.export_zip("2000-01-01", "9999-12-31")
         with zipfile.ZipFile(io.BytesIO(content)) as archive:
             all_files = b"".join(archive.read(name) for name in archive.namelist())
+            event = json.loads(archive.read("station_events.json"))[0]["event"]
+        self.assertEqual(event["date"], "2026-01-01")
+        self.assertEqual(event["category"], "WAN")
+        self.assertEqual(event["error"], 1)
+        self.assertEqual(event["logdetails"], "[REDACTED]")
         for secret in (b"private-token-784513", b"unknown-secret-key", b"private-ssid", b"aa:bb:cc:dd:ee:ff", b"8.8.8.8"):
             self.assertNotIn(secret, all_files)
 
