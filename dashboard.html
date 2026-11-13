@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="monitor-token" content="__TOKEN__">
+  <title>Vodafone Network Monitor</title>
+  <style>
+    body { font: 15px system-ui, sans-serif; margin: 2rem auto; max-width: 1150px; padding: 0 1rem; color: #222; }
+    h1 { color: #b90000; } button, input, select { font: inherit; margin: .25rem; padding: .35rem; }
+    section { border: 1px solid #ddd; border-radius: .4rem; margin: 1rem 0; padding: 1rem; }
+    canvas { width: 100%; height: 190px; border: 1px solid #ddd; }
+    table { border-collapse: collapse; width: 100%; } td, th { text-align: left; padding: .3rem; border-bottom: 1px solid #ddd; overflow-wrap: anywhere; }
+    .scroll { max-height: 20rem; overflow: auto; } .warning { color: #9c2600; } small { color: #555; }
+  </style>
+  <script src="/dashboard.js" defer></script>
+</head>
+<body>
+  <h1>Vodafone Network Monitor</h1>
+  <p>Strumento indipendente e non ufficiale, non affiliato a Vodafone.</p>
+  <p id="status">Caricamento…</p>
+  <button id="start">Avvia monitoraggio</button><button id="stop">Arresta monitoraggio</button><button id="shutdown">Esci dall'applicazione</button>
+  <section>
+    <h2>Intervallo</h2>
+    <select id="range"><option value="1">Ultima ora</option><option value="24">24 ore</option><option value="168">7 giorni</option><option value="custom">Personalizzato</option></select>
+    <label>Da <input id="from" type="datetime-local"></label><label>A <input id="to" type="datetime-local"></label>
+    <label>Dispositivo <select id="device"><option value="">Tutti</option></select></label>
+    <button id="refresh">Aggiorna</button>
+    <p id="summary"></p>
+  </section>
+  <section><h2>Andamento</h2>
+    <p>Linee: segnale % (verde), router ms (rosso), 1.1.1.1 ms (blu), 8.8.8.8 ms (viola), collegamento Mbps (grigio), perdita router % su 30 campioni (nero). Ogni linea usa una scala propria. Le linee verticali indicano importazioni dei log (arancione) e anomalie (rosso scuro).</p>
+    <canvas id="chart" width="1100" height="190"></canvas>
+    <p id="latest"></p><small>Il segnale percentuale non è RSSI dBm. La velocità di collegamento non è velocità Internet.</small>
+  </section>
+  <section><h2>Eventi Station</h2>
+    <p class="warning">Integrazione non verificata sul dispositivo. Importare manualmente un JSON ottenuto con accesso autorizzato; il tempo sulla timeline è quello di importazione.</p>
+    <input type="file" id="file" accept=".json,application/json"><button id="import">Importa JSON</button>
+    <label>Categoria <input id="category" placeholder="Tutte"></label>
+    <p id="import-status"></p><div class="scroll"><table><thead><tr><th>Importato (UTC)</th><th>Evento originale</th></tr></thead><tbody id="events"></tbody></table></div>
+  </section>
+  <section><h2>Anomalie</h2><div class="scroll"><table><thead><tr><th>Tipo</th><th>Inizio</th><th>Fine</th><th>Metriche iniziali</th></tr></thead><tbody id="anomalies"></tbody></table></div></section>
+  <section><h2>Soglie</h2>
+    <label>Latenza router (ms) <input id="latency" type="number" min="1" max="60000"></label>
+    <label>Segnale minimo (%) <input id="signal" type="number" min="0" max="100"></label>
+    <button id="save">Salva</button>
+  </section>
+  <section><h2>Esporta diagnostica</h2>
+    <select id="export-range"><option value="0.25">15 minuti</option><option value="1">1 ora</option><option value="24">24 ore</option><option value="custom">Intervallo personalizzato sopra</option></select>
+    <button id="export">Esporta diagnostica</button>
+    <p>I valori originali dei log vengono sempre oscurati per evitare la divulgazione di dati sensibili. Verificare lo ZIP prima di condividerlo.</p>
+  </section>
+  <p id="message" role="status"></p>
+</body>
+</html>
